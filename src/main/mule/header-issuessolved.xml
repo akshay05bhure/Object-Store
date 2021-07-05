@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="86db9624-08d9-4663-90cd-6a72cde6a5b6" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<os:config name="ObjectStore_Config" doc:name="ObjectStore Config" doc:id="203321e1-86bb-4d8b-bd6b-3ea1bbda83b8" />
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="ac563a82-1dc9-4c0e-960b-49586a6d9539" entryTtl="15" entryTtlUnit="MINUTES" expirationInterval="5" config-ref="ObjectStore_Config" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="976c2d35-66db-4b09-afcc-8a26fe463575" >
+		<file:connection workingDir="D:\Recordings" />
+	</file:config>
+	<flow name="header-issuessolvedFlow" doc:id="b3ec4a8d-7970-4005-933d-81f847b8a7c3" >
+		<http:listener doc:name="Listener" doc:id="2364b523-9689-4134-a7d0-b46667337360" config-ref="HTTP_Listener_config" path="/writeFile"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3c115a77-3cd0-4e68-871f-381dfe178ec4" message="started"/>
+		<os:retrieve doc:name="Retrieve" doc:id="5bdd3b02-431f-4f27-8fb7-f6620e4a3360" key="header" target="header" objectStore="Object_store">
+			<os:default-value ><![CDATA[#[true]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="be1a3de1-9784-40cb-9f98-c9b2f1799d45" >
+			<when expression="#[vars.header == true]">
+				<ee:transform doc:name="Transform Message" doc:id="5420dbec-3289-410a-93a3-170973b2b858" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header = true
+---
+[{
+	Product_Id: attributes.queryParams.id default 0 as Number,
+	Product_Name: attributes.queryParams.pname default "" as String,
+	Product_Price: attributes.queryParams.price default 0.0 as Number
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="e5afc2e0-d068-484e-8b2a-95219769cdb2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+
+output application/csv header = false
+
+---
+[{
+	Product_Id: attributes.queryParams.id default 0 as Number,
+	Product_Name: attributes.queryParams.pname default "" as String,
+	Product_Price: attributes.queryParams.price default 0.0 as Number
+}]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<file:write doc:name="Write" doc:id="8beb1844-37f6-40e7-af63-fe77de73a43a" config-ref="File_Config" path="Output/products.csv" mode="APPEND"/>
+		<os:store doc:name="Store" doc:id="1b2b30bf-fb01-4229-be6f-e9a9ff10320c" key="header" objectStore="Object_store">
+			<os:value ><![CDATA[#[false]]]></os:value>
+		</os:store>
+	</flow>
+</mule>

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="new" format="csv">
+      <types:shape format="weave"><![CDATA[%dw 2.0
+
+type new = Array<{|  Product_Id: String,   Product_Name: String,   Product_Price: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#5420dbec-3289-410a-93a3-170973b2b858">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="new"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#e5afc2e0-d068-484e-8b2a-95219769cdb2">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="new"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
